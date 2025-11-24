@@ -8,12 +8,18 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 /**
- * DistributionClaim 엔티티
- * - 특정 세션에서 사용자(userName)가 한 번만 수령하도록 제약(세션+사용자 UNIQUE)이 적용됩니다.
- * - 선착순 소진 시도 시 동시성으로 인한 중복 수령 방지에 기여합니다.
+ * DistributionClaim
+ * - 세션별 수령 사용자 1회 제한 (session_id + student_id 유니크)
+ * - 프론트/백엔드 공통 키(name, studentId) 사용
  */
 @Entity
-@Table(name = "distribution_claim")
+@Table(
+        name = "distribution_claim",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_claim_session_student",
+                columnNames = {"session_id", "student_id"}
+        )
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -27,15 +33,30 @@ public class DistributionClaim {
     @JoinColumn(name = "session_id", nullable = false)
     private DistributionSession session;
 
+    // 🔹 프론트/백엔드 공통 키로 통일: name
     @Column(name = "user_name", nullable = false, length = 100)
-    private String userName;
+    private String name;
+
+    // 🔹 동명이인 구분: studentId 추가 (권장)
+    @Column(name = "student_id", nullable = false, length = 50)
+    private String studentId;
 
     @Column(name = "claimed_at", nullable = false)
     private LocalDateTime claimedAt;
 
-    public DistributionClaim(DistributionSession session, String userName) {
+    public DistributionClaim(DistributionSession session, String name, String studentId) {
         this.session = session;
-        this.userName = userName;
+        this.name = name;
+        this.studentId = studentId;
         this.claimedAt = LocalDateTime.now();
     }
+    public DistributionClaim(DistributionSession session, String name) {
+        this.session = session;
+        this.name = name;
+        this.studentId = "UNKNOWN"; // or null (if you prefer)
+        this.claimedAt = LocalDateTime.now();
+    }
+    // ✅ 기존 코드 호환용 (예전에 userName을 참조하던 코드가 있을 수 있어서 유지)
+    public String getUserName() { return this.name; }
+    public void setUserName(String userName) { this.name = userName; }
 }

@@ -17,7 +17,8 @@ import java.util.List;
 
 /**
  * JwtAuthenticationFilter
- * - Authorization: Bearer <token> 헤더를 읽어 Spring Security 컨텍스트에 인증 정보를 설정합니다.
+ * - 특정 API는 JWT를 검사하지 않고 바로 다음 필터로 넘긴다.
+ * - 그 외 API는 Authorization 헤더의 JWT를 파싱하여 인증정보를 설정한다.
  */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -29,22 +30,61 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
+
+        // *** 🚀 핵심 수정: getRequestURI() 로 바꿔야 경로가 정확히 읽힘 ***
+        String path = request.getRequestURI();
+
+        // ============================
+        // 1) JWT 인증을 건너뛸 공개 API 등록
+        // ============================
+        if (path.startsWith("/distribution")     // claim 포함
+                || path.startsWith("/api/dishes")
+                || path.startsWith("/upload")
+                || path.startsWith("/api/auth")
+                || path.equals("/")
+                || path.startsWith("/swagger-ui")
+                || path.startsWith("/v3/api-docs")
+        ) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // ============================
+        // 2) JWT 인증 처리
+        // ============================
         String auth = request.getHeader(HttpHeaders.AUTHORIZATION);
+
         if (auth != null && auth.startsWith("Bearer ")) {
+
             String token = auth.substring(7);
+
             try {
                 Claims claims = tokenProvider.parse(token);
+
                 String email = claims.getSubject();
                 String role = claims.get("role", String.class);
-                var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()));
-                var authToken = new UsernamePasswordAuthenticationToken(email, null, authorities);
+
+                var authorities =
+                        List.of(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()));
+
+                var authToken =
+                        new UsernamePasswordAuthenticationToken(email, null, authorities);
+
                 SecurityContextHolder.getContext().setAuthentication(authToken);
-            } catch (Exception ignored) {
-                // 유효하지 않은 토큰이면 인증 없이 다음 필터로 진행
+
+            } catch (Exception ex) {
+                // 토큰 잘못된 경우 → 인증 없이 계속 진행
             }
         }
+
+        // ============================
+        // 3) 다음 필터로 진행
+        // ============================
         filterChain.doFilter(request, response);
     }
 }

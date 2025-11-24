@@ -2,58 +2,46 @@ package com.zongsul.backend.api;
 
 import com.zongsul.backend.domain.user.User;
 import com.zongsul.backend.domain.user.UserRepository;
-import com.zongsul.backend.domain.user.UserRole;
-import com.zongsul.backend.security.JwtTokenProvider;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-
-import java.security.Principal;
 import java.util.Map;
 
+@CrossOrigin(origins ="*")
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtTokenProvider jwtTokenProvider;
 
-    public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider) {
+    public AuthController(UserRepository userRepository) {
         this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtTokenProvider = jwtTokenProvider;
     }
-
-public record RegisterRequest(@Email String email, @NotBlank String name, @NotBlank String password, String role) {}
-
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest req) {
-        if (userRepository.existsByEmail(req.email())) return ResponseEntity.badRequest().body(Map.of("error","email exists"));
-        UserRole role = (req.role() == null) ? UserRole.USER : UserRole.valueOf(req.role().toUpperCase());
-        User u = new User(req.email(), req.name(), passwordEncoder.encode(req.password()), role);
-        userRepository.save(u);
-        return ResponseEntity.ok(Map.of("id", u.getId(), "email", u.getEmail(), "name", u.getName(), "role", u.getRole()));
-    }
-
-    public record LoginRequest(@Email String email, @NotBlank String password) {}
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest req) {
-        User u = userRepository.findByEmail(req.email()).orElse(null);
-        if (u == null || !passwordEncoder.matches(req.password(), u.getPassword()))
-            return ResponseEntity.status(401).body(Map.of("error","invalid credentials"));
-        String token = jwtTokenProvider.createToken(u.getEmail(), u.getRole().name(), u.getName());
-        return ResponseEntity.ok(Map.of("token", token));
-    }
+    public ResponseEntity<?> login(@RequestBody Map<String, String> req) {
+        String name = req.get("name");
+        String studentId = req.get("studentId");
 
-    @GetMapping("/me")
-    public ResponseEntity<?> me(Principal principal) {
-        if (principal == null) return ResponseEntity.status(401).build();
-        User u = userRepository.findByEmail(principal.getName()).orElse(null);
-        if (u == null) return ResponseEntity.status(404).build();
-        return ResponseEntity.ok(Map.of("id", u.getId(), "email", u.getEmail(), "name", u.getName(), "role", u.getRole()));
+        if (name == null || studentId == null || name.trim().isEmpty() || studentId.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "이름과 학번을 모두 입력하세요."));
+        }
+
+        // DB에서 학번으로 조회
+        User user = userRepository.findByStudentId(studentId).orElse(null);
+
+        if (user == null) {
+            // 등록되지 않은 학번이면 새로 저장
+            user = new User(name, studentId);
+            userRepository.save(user);
+        } else if (!user.getName().equals(name)) {
+            // 같은 학번에 다른 이름이면 오류
+            return ResponseEntity.status(400).body(Map.of("error", "이미 다른 이름으로 등록된 학번입니다."));
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "message", "로그인 성공",
+                "name", user.getName(),
+                "studentId", user.getStudentId()
+        ));
     }
 }

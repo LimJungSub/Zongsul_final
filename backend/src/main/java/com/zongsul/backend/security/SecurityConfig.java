@@ -12,12 +12,10 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
 
-/**
- * SecurityConfig
- * - JWT 기반 무상태(stateless) 인증 설정.
- * - /api/auth/** 와 Swagger, 정적 리소스는 공개하며 나머지는 인증 필요.
- */
+import java.util.List;
+
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
@@ -30,24 +28,64 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-            .csrf(csrf -> csrf.disable())
-            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+
+        // ============================
+        // 1) CORS 허용
+        // ============================
+        http.cors(cors -> cors.configurationSource(request -> {
+            CorsConfiguration config = new CorsConfiguration();
+            config.setAllowedOrigins(List.of("*"));
+            config.setAllowedMethods(List.of("*"));
+            config.setAllowedHeaders(List.of("*"));
+            config.setAllowCredentials(false);
+            return config;
+        }));
+
+        // ============================
+        // 2) CSRF, 세션 off
+        // ============================
+        http.csrf(csrf -> csrf.disable());
+        http.sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+
+        // ============================
+        // 3) 공개 API 설정 (permitAll)
+        // ============================
+        http.authorizeHttpRequests(auth -> auth
+
+                // OPTIONS 허용 (CORS preflight)
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                // 손님/관리자 공통 (JWT 없이 접근 가능)
+                .requestMatchers("/distribution/**").permitAll() // ⭐ claim 포함
                 .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/foods").permitAll() // 사용자 공개 조회
+                .requestMatchers("/api/dishes/**").permitAll()
+
+                // 문서
+                .requestMatchers("/", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+
+                // 업로드 등 기타
+                .requestMatchers("/upload/**").permitAll()
+
+                // 나머지는 인증 필요
                 .anyRequest().authenticated()
-            )
-            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+        );
+
+        // ============================
+        // 4) JWT 필터 추가
+        // ============================
+        http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration)
+            throws Exception {
         return configuration.getAuthenticationManager();
     }
 }

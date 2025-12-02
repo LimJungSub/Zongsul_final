@@ -1,6 +1,2 @@
-node_modules/ 
-.idea/ 
-target/ 
-.DS_Store 
-.ebextensions/logs/ 
-.platform/nginx/logs/ 
+*.pem
+*.env

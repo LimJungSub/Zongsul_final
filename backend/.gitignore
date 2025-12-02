@@ -1,101 +1,33 @@
-#######################################
-# General
-#######################################
-*.class
-*.log
-*.lock
-*.tmp
-*.swp
-*.bak
+# === IDE / Build ===
+.gradle
+build/
+out/
+bin/
+.idea
+*.iml
 
-#######################################
-# OS generated files
-#######################################
+# === OS ===
 .DS_Store
 Thumbs.db
 
-#######################################
-# IntelliJ IDEA
-#######################################
-.idea/
-*.iml
-*.ipr
-*.iws
-out/
-
-#######################################
-# VS Code
-#######################################
-.vscode/
-
-#######################################
-# Gradle
-#######################################
-.gradle
-build/
-!gradle/wrapper/gradle-wrapper.jar
-
-#######################################
-# Java / Maven
-#######################################
-target/
-pom.xml.tag
-pom.xml.releaseBackup
-pom.xml.versionsBackup
-pom.xml.next
-release.properties
-
-#######################################
-# Spring Boot (중요!)
-#######################################
-# 절대 깃허브에 올리면 안 되는 민감파일
-src/main/resources/application.properties
-src/main/resources/application.yml
-*.properties
-*.yml
-
-#######################################
-# AWS credentials (빼야 함)
-#######################################
-# SSH 키 / AWS 키 / PEM 파일 보호
-*.pem
-*.key
-*.pub
-*.aws
-aws/
-**/credentials
-**/config
-
-#######################################
-# Environment Files
-#######################################
-.env
-*.env
-
-#######################################
-# Elastic Beanstalk
-#######################################
+# === Elastic Beanstalk ===
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
 
-#######################################
-# Logs (EB, NGX, Spring)
-#######################################
-logs/
+# === Spring Boot Properties ===
+src/main/resources/application.properties
+src/main/resources/application-*.properties
+
+# === Secrets ===
+*.env
+*.pem
+*.key
+*.crt
+
+# === YAML configs ===
+*.yml
+*.yaml
+
+# === Logs ===
 *.log
-*.out
-spring.log
-nohup.out
-
-#######################################
-# Nginx
-#######################################
-.platform/nginx/logs/
-.platform/nginx/conf.d/
-
-#######################################
-# AWS Lambda / AI Models (추천)
-#######################################
-*.pt
-*.pth

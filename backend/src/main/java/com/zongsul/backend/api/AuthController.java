@@ -44,4 +44,5 @@ public class AuthController {
                 "studentId", user.getStudentId()
         ));
     }
+
 }

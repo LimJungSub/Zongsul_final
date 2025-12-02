@@ -1,30 +1,40 @@
 package com.zongsul.backend.service;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 /**
- * InferenceClient의 간단한 가짜 구현체
- * - 실제 YOLO/EC2 연동 전까지 테스트용으로 사용합니다.
+ * 실제 모델 없이도 프론트 시연을 위해 쓰는 가짜 구현
+ * - 계란찜 / 김자반 / 시금치에 대해 랜덤 값 생성
+ * - 나중에 진짜 FastAPI 연동할 거면 HttpInferenceClient를 만들고 Bean 교체하면 됨
  */
 @Service
-@ConditionalOnProperty(name = "inference.mode", havingValue = "fake", matchIfMissing = true)
 public class FakeInferenceClient implements InferenceClient {
 
-    private static final List<String> FOODS = List.of("rice", "kimchi", "fish_cutlet", "soup");
     private final Random random = new Random();
 
+    private static final List<String> TARGET_FOODS =
+            List.of("계란찜", "김자반", "시금치");
+
     @Override
-    public List<FoodResult> infer(byte[] imageBytes, String filename) {
-        List<FoodResult> results = new ArrayList<>();
-        for (String f : FOODS) {
-            double r = Math.round(random.nextDouble(0.0, 0.9) * 100.0) / 100.0;
-            results.add(new FoodResult(f, r));
+    public Map<String, Double> infer(byte[] imageBytes, String filename) {
+        Map<String, Double> out = new LinkedHashMap<>();
+
+        // 0.0 ~ 1.0 사이 랜덤 값 생성 후, 합이 1이 되도록 정규화
+        double[] raw = new double[TARGET_FOODS.size()];
+        double sum = 0.0;
+        for (int i = 0; i < raw.length; i++) {
+            raw[i] = 0.1 + random.nextDouble(); // 최소 0.1은 주기
+            sum += raw[i];
         }
-        return results;
+
+        for (int i = 0; i < TARGET_FOODS.size(); i++) {
+            double ratio = raw[i] / sum; // 0.0 ~ 1.0
+            ratio = Math.round(ratio * 1000.0) / 1000.0; // 소수 셋째 자리까지
+            out.put(TARGET_FOODS.get(i), ratio);
+        }
+
+        return out;
     }
 }

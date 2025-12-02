@@ -10,12 +10,12 @@ import java.time.LocalDateTime;
 
 /**
  * MenuRecommendation 엔티티
- * - 요일별(월~금) 추천 식단 조합을 저장합니다.
- * - 주차 구분은 "weekStartDate(월요일)"로 표현합니다.
+ * - 요일별(월~금) 추천 식단 조합 저장
+ * - 주차 구분은 "weekStartDate(월요일)"로 표현
  *
  * 실무 팁
- * - 동일 주에 대한 중복 생성 방지를 위해 (week_start_date, day_of_week) 유니크 인덱스를 둘 수 있습니다.
- *   여기서는 조회 인덱스(idx_menu_rec_week_day)만 생성해둠.
+ * - 동일 주에 대한 중복 생성 방지를 위해 (week_start_date, day_of_week) 유니크 인덱스 추가 가능
+ *   여기서는 조회 인덱스(idx_menu_rec_week_day)만 생성해둠
  */
 @Entity
 @Table(name = "menu_recommendation")
@@ -38,12 +38,23 @@ public class MenuRecommendation {
     @Column(name = "day_of_week", nullable = false)
     private Integer dayOfWeek;
 
+    // 1. 밥
+    @Column(nullable = false)
+    private String rice;
+
+    // 2. 국
+    @Column(nullable = false)
+    private String soup;
+
+    // 3. 메인 반찬
     @Column(nullable = false)
     private String main;
 
+    // 4. 서브 메뉴
     @Column(nullable = false)
     private String side1;
 
+    // 5. 나물류
     @Column(nullable = false)
     private String side2;
 

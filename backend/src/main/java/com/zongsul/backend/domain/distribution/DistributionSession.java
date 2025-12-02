@@ -1,6 +1,5 @@
 package com.zongsul.backend.domain.distribution;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -49,13 +48,13 @@ public class DistributionSession {
     private LocalDateTime createdAt;
 
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonIgnore   // 🔥 JSON 순환 참조 방지
+    @JsonIgnoreProperties({"session"})
     private List<DistributionClaim> claims = new ArrayList<>();
 
     public DistributionSession(String menuName, Integer capacity) {
         this.menuName = menuName;
         this.capacity = capacity;
-        this.remainingCount = capacity;    // 🔥 capacity 그대로 저장됨
+        this.remainingCount = capacity;
         this.active = true;
     }
 

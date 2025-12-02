@@ -4,10 +4,7 @@ import com.zongsul.backend.domain.menu.MenuRecommendation;
 import com.zongsul.backend.domain.menu.MenuRecommendationRepository;
 import com.zongsul.backend.service.MenuRecommendationService;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -25,7 +22,7 @@ public class MenuController {
         this.service = service;
     }
 
-    @GetMapping("/ai_recommendations")
+    @GetMapping("/next-week")
     public List<MenuRecommendation> recommendations(
             @RequestParam(value = "weekStart", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart) {
@@ -33,12 +30,27 @@ public class MenuController {
         return repo.findByWeekStartDateOrderByDayOfWeekAsc(target);
     }
 
-    @GetMapping("/substitute")
-    public Map<String, String> substitute() {
-        return Map.of(
-                "spinach_namul", "bean_sprouts",
-                "kimchi", "radish_kimchi",
-                "miso_soup", "seaweed_soup"
-        );
+
+    public record MenuAnalysisRequest(List<String> menus) {}
+
+    @PostMapping("/analyze")
+    public Map<String, Double> analyze(@RequestBody MenuAnalysisRequest request) {
+        return service.analyzeMenu(request.menus());
     }
+
+    @PostMapping("/recommend-substitute")
+    public Map<String, String> recommendSubstitute(@RequestBody MenuAnalysisRequest request) {
+        return service.recommendSubstitute(request.menus());
+    }
+
+    /**
+     * 분석된 반찬(월~금)을 기반으로 다음주 식단표 생성
+     * 프론트에서 forcedSides(Map<String, String>)를 보내면
+     * 해당 서브반찬을 요일별로 강제로 넣어준다.
+     */
+    @PostMapping("/next-week")
+    public List<MenuRecommendation> generateNextWeek(@RequestBody Map<String, String> forcedSides) {
+        return service.generateNextWeekWithForcedSides(forcedSides);
+    }
+
 }

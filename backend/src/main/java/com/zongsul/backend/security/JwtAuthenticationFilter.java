@@ -15,11 +15,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.List;
 
-/**
- * JwtAuthenticationFilter
- * - 특정 API는 JWT를 검사하지 않고 바로 다음 필터로 넘긴다.
- * - 그 외 API는 Authorization 헤더의 JWT를 파싱하여 인증정보를 설정한다.
- */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -36,27 +31,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        // *** 🚀 핵심 수정: getRequestURI() 로 바꿔야 경로가 정확히 읽힘 ***
         String path = request.getRequestURI();
 
-        // ============================
-        // 1) JWT 인증을 건너뛸 공개 API 등록
-        // ============================
-        if (path.startsWith("/distribution")     // claim 포함
-                || path.startsWith("/api/dishes")
-                || path.startsWith("/upload")
-                || path.startsWith("/api/auth")
-                || path.equals("/")
-                || path.startsWith("/swagger-ui")
-                || path.startsWith("/v3/api-docs")
+        if (path.startsWith("/api/auth") ||           // 로그인 / 회원가입
+                path.startsWith("/distribution") ||        // 배포
+                path.startsWith("/api/dishes") ||          // 식단
+                path.startsWith("/upload") ||              // 이미지 업로드
+                path.equals("/") ||
+                path.startsWith("/swagger-ui") ||
+                path.startsWith("/v3/api-docs")
         ) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // ============================
-        // 2) JWT 인증 처리
-        // ============================
+
         String auth = request.getHeader(HttpHeaders.AUTHORIZATION);
 
         if (auth != null && auth.startsWith("Bearer ")) {
@@ -82,9 +71,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         }
 
-        // ============================
-        // 3) 다음 필터로 진행
-        // ============================
+
         filterChain.doFilter(request, response);
     }
 }
